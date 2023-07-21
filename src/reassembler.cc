@@ -5,6 +5,9 @@ using namespace std;
 void Reassembler::insert(uint64_t first_index, string data, bool is_last_substring, Writer &output) {
     // Your code here.
 
+    if (is_last_substring) {
+        closed_ = true;
+    }
     /* check
      * 1、is out of bound ?
      * 2、is all overlapped ?
@@ -17,7 +20,7 @@ void Reassembler::insert(uint64_t first_index, string data, bool is_last_substri
         output.available_capacity() == 0 /* no available space */
             ) {
         // if need be closed
-        if (is_last_substring && bytes_pending() == 0) {
+        if (closed_ && bytes_pending() == 0) {
             output.close();
         }
         // do nothing
@@ -128,7 +131,7 @@ void Reassembler::insert(uint64_t first_index, string data, bool is_last_substri
         }
     }
 
-    if (is_last_substring && bytes_pending() == 0) {
+    if (closed_ && bytes_pending() == 0) {
         output.close();
     }
 }
