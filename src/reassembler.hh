@@ -1,14 +1,16 @@
 #pragma once
 
 #include "byte_stream.hh"
-
+#include <map>
 class Reassembler {
-private:
-    uint64_t cap_; // Reassembler 的内部存储最大容量
-    std::vector<std::string> inter_storage_; // 实现优先队列
-    uint64_t available_cap_{0};
 
+private:
+    std::map<uint64_t ,std::string> inter_storage_{};
+    uint64_t unassembled_bytes_{0}; // 未组装好的字节数目，也就是留在内部存储中
+    uint64_t unassembled_idx_{0}; // 当前处理到的idx
 public:
+    Reassembler() = default;
+
     /*
      * Insert a new substring to be reassembled into a ByteStream.
      *   `first_index`: the index of the first byte of the substring
@@ -33,7 +35,4 @@ public:
 
     // How many bytes are stored in the Reassembler itself?
     uint64_t bytes_pending() const;
-
-    // construct function
-    Reassembler(uint64_t cap);
 };
