@@ -128,7 +128,7 @@ void Reassembler::insert(uint64_t first_index, string data, bool is_last_substri
         }
     }
 
-    if (is_last_substring && output.available_capacity() == 0) {
+    if (is_last_substring && bytes_pending() == 0) {
         output.close();
     }
 }
