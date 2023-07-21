@@ -1,18 +1,21 @@
 #pragma once
 
-#include <queue>
+#include <socket.hh>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-
 class Reader;
 class Writer;
 
 class ByteStream
 {
 protected:
-  uint64_t capacity_;
-  // Please add any additional state to the ByteStream here, and not to the Writer and Reader interfaces.
+  std::string buf {};
+  uint64_t cap {};
+  uint64_t num_of_write {}, num_of_read {};
+
+  bool closed_ {};
+  bool error_ {};
 
 public:
   explicit ByteStream( uint64_t capacity );
@@ -22,6 +25,8 @@ public:
   const Reader& reader() const;
   Writer& writer();
   const Writer& writer() const;
+
+  bool empty() const;
 };
 
 class Writer : public ByteStream
