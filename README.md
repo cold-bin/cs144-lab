@@ -49,6 +49,26 @@ part2实现可靠字节流，使用一个普通string来存储字节流
 ### 具体实现
 
 这里参考了上面的博客
-![Memory usage limitation of Reassembler and ByteStream](https://hangx-ma.github.io/norobots/images/2023-05-14-cs144-lab1/bytestream_space_interpretation.png)
+![Memory usage limitation of Reassembler and ByteStream](static/img-unassembled.png)
 
-***
+## lab2
+
+## reference link
+
+## implementation
+
+### `wrap`与`unwrap`
+
+![seqno](static/img-seqno.png)
+
+- `wrap`是将`absolute seqno`转化为`seqno` <br>
+  由于`absolute seqno`是非循环序号，`seqno`是循环序号，所以需要取模转化。（当然也可以直接截断。
+
+- `unwrap`是将`seqno`转化为`absolute seqno` <br>
+  > `checkpoint`其实就是`first_unassembled_index`
+
+  这里的处理比较麻烦。我最开始的想法是，循环找出最小的`checkpoint - (seqno+x * 2^32)`，也就是离得最近的`x`。
+  但是复杂度比较高，看了大佬的博客，利用位运算，可以将`O(x)`的时间复杂度降低为O(1). <br>
+  官方让我们找到离`checkpoint`最近的`absolute seqno`，因为给出`seqno`，会有多个`absolute seqno`与之对应，
+
+### TCP Receiver
