@@ -4,7 +4,6 @@ using namespace std;
 
 void TCPReceiver::receive(TCPSenderMessage message, Reassembler &reassembler, Writer &inbound_stream) {
     // Your code here.
-    cur_message = message;
     // 如果没有设置isn，就设置isn
     if (!is_isn_set) {
         if (!message.SYN) {

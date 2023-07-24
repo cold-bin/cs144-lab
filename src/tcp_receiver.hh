@@ -8,7 +8,6 @@ class TCPReceiver {
 private:
     Wrap32 isn{0};
     bool is_isn_set{false};
-    TCPSenderMessage cur_message{};
 public:
     /*
      * The TCPReceiver receives TCPSenderMessages, inserting their payload into the Reassembler
