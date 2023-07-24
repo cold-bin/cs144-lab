@@ -7,12 +7,7 @@ class Reassembler {
 private:
     std::map<uint64_t ,std::string> inter_storage_{};
     uint64_t unassembled_bytes_{0}; // 未组装好的字节数目，也就是留在内部存储中
-    uint64_t unassembled_idx_{0};
-public:
-    uint64_t getUnassembledIdx() const;
-
-private:
-    // 当前处理到的idx
+    uint64_t unassembled_idx_{0};// 当前处理到的idx
     bool closed_{false};
 public:
     Reassembler() = default;
