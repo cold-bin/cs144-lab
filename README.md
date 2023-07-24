@@ -48,7 +48,7 @@ part2实现可靠字节流，使用一个普通string来存储字节流
 
 ### 具体实现
 
-这里参考了上面的博客
+这里参考了上面的博客<br>
 ![Memory usage limitation of Reassembler and ByteStream](static/img-unassembled.png)
 
 ## lab2
