@@ -140,3 +140,7 @@ uint64_t Reassembler::bytes_pending() const {
     // Your code here.
     return unassembled_bytes_;
 }
+
+uint64_t Reassembler::getUnassembledIdx() const {
+    return unassembled_idx_;
+}
