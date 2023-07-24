@@ -72,3 +72,8 @@ part2实现可靠字节流，使用一个普通string来存储字节流
   官方让我们找到离`checkpoint`最近的`absolute seqno`，因为给出`seqno`，会有多个`absolute seqno`与之对应，
 
 ### TCP Receiver
+
+> 参考上面`seqno`、`absolute seqno`与`stream index`的对应关系图
+
+- `receive`时，直接在`reassembler`中插入`absolute seqno`，显然不是期待的`stream_index`；
+- `send`时，需要考虑到`available_capacity`不能超过`UINT_MAX`以及`close`时，发送的fin报文也要占据一个序号
