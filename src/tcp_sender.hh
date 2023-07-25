@@ -11,7 +11,6 @@ class TCPSender {
     uint64_t initial_RTO_ms_; // 初始给的RTO
     uint64_t rto_{}; // 重传超时时间
     size_t timer_{}; // 存储时间
-    bool is_setup_timer_{false};
 
     bool is_setup_syn_{false};
     bool is_setup_fin_{false};
@@ -21,7 +20,6 @@ class TCPSender {
     std::queue<TCPSenderMessage> segments_out_{}; // fifo队列
 
     uint64_t next_absolute_seqno_{0}; // 下一个绝对序列号
-    Wrap32 recv_ackno_{0};// ackno，即期待接收下一个字节的序列号
     uint64_t number_of_retransmissions_{0};// 重传次数
     uint16_t window_size_{1};
 

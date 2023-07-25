@@ -22,7 +22,7 @@ uint64_t TCPSender::consecutive_retransmissions() const {
 optional<TCPSenderMessage> TCPSender::maybe_send() {
     // Your code here.
     if (!segments_out_.empty() && is_setup_syn_) {
-        auto e = segments_out_.front();
+        auto e = std::move(segments_out_.front());
         segments_out_.pop();
         return e;
     }
@@ -53,10 +53,10 @@ void TCPSender::push(Reader &outbound_stream) {
         // place payload
         const uint64_t payload_size
                 = min(TCPConfig::MAX_PAYLOAD_SIZE, window_size_ - outstanding_seqno_ - msg.SYN);
-        std::string const payload = std::string(outbound_stream.peek()).substr(0, payload_size);
+        std::string payload = std::string(outbound_stream.peek()).substr(0, payload_size);
         outbound_stream.pop(payload_size);
 
-        msg.payload = Buffer(payload);
+        msg.payload = Buffer(std::move(payload));
 
         // place fin if these conditions satisfied:
         // 1. not set fin before;
@@ -67,14 +67,13 @@ void TCPSender::push(Reader &outbound_stream) {
             is_setup_fin_ = msg.FIN = true;
         }
 
-        if (segments_out_.empty()) {
+        if (outstanding_segments_.empty()) {
             rto_ = initial_RTO_ms_;
             timer_ = 0;
         }
 
         segments_out_.push(msg);
 
-        window_size_ -= msg.sequence_length();
         outstanding_seqno_ += msg.sequence_length();
         outstanding_segments_.insert(std::make_pair(next_absolute_seqno_, msg));
         next_absolute_seqno_ += msg.sequence_length();
