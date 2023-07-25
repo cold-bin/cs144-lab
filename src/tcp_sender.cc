@@ -23,10 +23,10 @@ optional<TCPSenderMessage> TCPSender::maybe_send() {
     // Your code here.
     if (!segments_out_.empty() && is_setup_syn_) {
         auto e = segments_out_.front();
-
         segments_out_.pop();
         return e;
     }
+    return nullopt;
 }
 
 void TCPSender::push(Reader &outbound_stream) {
