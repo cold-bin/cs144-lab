@@ -6,22 +6,28 @@
 #include <queue>
 #include <map>
 
-class TCPSender {
-    Wrap32 isn_;
-    uint64_t initial_RTO_ms_; // 初始给的RTO
-    uint64_t rto_{}; // 重传超时时间
-    size_t timer_{}; // 存储时间
+class TCPSender
+{
+    Wrap32 isn_; // initial sequence number, SYN
 
-    bool is_setup_syn_{false};
-    bool is_setup_fin_{false};
+    uint64_t initial_RTO_ms_;
+    uint64_t RTO_timeout_ {0};
+    uint64_t timer_ {0}; // retransmission timer
 
-    uint64_t outstanding_seqno_{0};
-    std::map<uint64_t/* absolute seqno */, TCPSenderMessage> outstanding_segments_{};// 已发送但未收到ack的数据段payload，空payload不保存。
-    std::queue<TCPSenderMessage> segments_out_{}; // fifo队列
+    bool set_syn_ {false};
+    bool set_fin_ {false};
 
-    uint64_t next_absolute_seqno_{0}; // 下一个绝对序列号
-    uint64_t number_of_retransmissions_{0};// 重传次数
-    uint16_t window_size_{1};
+    uint64_t next_abs_seqno_ {0};
+
+    uint64_t window_size_ {1};
+    uint64_t outstanding_seqno_ {0};
+    std::map<uint64_t /* abs_seqno */, TCPSenderMessage> outstanding_seg_ {};
+    std::queue<TCPSenderMessage> segments_out_ {};
+
+    uint64_t consecutive_retransmission_times_ {0};
+
+    uint64_t get_next_abs_seqno_() const { return next_abs_seqno_; };
+    Wrap32 get_next_seqno() const { return isn_ + next_abs_seqno_; };
 
 public:
     /* Construct TCP sender with given default Retransmission Timeout and possible ISN */

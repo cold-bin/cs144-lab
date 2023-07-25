@@ -2,6 +2,8 @@
 #include "tcp_config.hh"
 
 #include <random>
+#include <iostream>
+
 
 using namespace std;
 
@@ -9,74 +11,60 @@ using namespace std;
 TCPSender::TCPSender(uint64_t initial_RTO_ms, optional<Wrap32> fixed_isn)
         : isn_(fixed_isn.value_or(Wrap32{random_device()()})), initial_RTO_ms_(initial_RTO_ms) {}
 
-uint64_t TCPSender::sequence_numbers_in_flight() const {
-    // Your code here.
-    return outstanding_seqno_;
-}
+uint64_t TCPSender::sequence_numbers_in_flight() const { return outstanding_seqno_; }
 
-uint64_t TCPSender::consecutive_retransmissions() const {
-    // Your code here.
-    return number_of_retransmissions_;
-}
+uint64_t TCPSender::consecutive_retransmissions() const { return consecutive_retransmission_times_; }
 
 optional<TCPSenderMessage> TCPSender::maybe_send() {
-    // Your code here.
-    if (!segments_out_.empty() && is_setup_syn_) {
-        auto e = std::move(segments_out_.front());
+    if (!segments_out_.empty() && set_syn_) {
+        TCPSenderMessage segment = std::move(segments_out_.front());
         segments_out_.pop();
-        return e;
+        return segment;
     }
+
     return nullopt;
 }
 
 void TCPSender::push(Reader &outbound_stream) {
-    // Your code here.
-
-    // if window size is zero, you can assume the window size is one(just one byte),
-    // in order to wait for the receiver
-    if (window_size_ == 0) {
-        window_size_ = 1;
-    }
-
-    // best effort to fit more TCPSenderMessage
-    while (window_size_ > outstanding_seqno_) {
+    const uint64_t curr_window_size = window_size_ ? window_size_ : 1;
+    while (curr_window_size > outstanding_seqno_) {
         TCPSenderMessage msg;
 
-        // set seqno
-        msg.seqno = isn_ + next_absolute_seqno_;
-
-        // place syn if needed
-        if (!is_setup_syn_) {
-            is_setup_syn_ = msg.SYN = true;
+        if (!set_syn_) {
+            msg.SYN = true;
+            set_syn_ = true;
         }
 
-        // place payload
+        msg.seqno = get_next_seqno();
         const uint64_t payload_size
-                = min(TCPConfig::MAX_PAYLOAD_SIZE, window_size_ - outstanding_seqno_ - msg.SYN);
+                = min(TCPConfig::MAX_PAYLOAD_SIZE, curr_window_size - outstanding_seqno_ - msg.SYN);
         std::string payload = std::string(outbound_stream.peek()).substr(0, payload_size);
         outbound_stream.pop(payload_size);
 
-        msg.payload = Buffer(std::move(payload));
-
-        // place fin if these conditions satisfied:
-        // 1. not set fin before;
-        // 2. Reader has no data;
-        // 3. after place syn and payload, the window can yet contain fin.
-        if (!is_setup_fin_ && outbound_stream.is_finished() &&
-            msg.payload.size() + outstanding_seqno_ + msg.SYN < window_size_) {
-            is_setup_fin_ = msg.FIN = true;
+        if (!set_fin_ && outbound_stream.is_finished()
+            && payload.size() + outstanding_seqno_ + msg.SYN < curr_window_size) {
+            msg.FIN = true;
+            set_fin_ = true;
         }
 
-        if (outstanding_segments_.empty()) {
-            rto_ = initial_RTO_ms_;
+        msg.payload = Buffer(std::move(payload));
+
+        // no data, stop sending
+        if (msg.sequence_length() == 0) {
+            break;
+        }
+
+        // no outstanding segments, restart timer
+        if (outstanding_seg_.empty()) {
+            RTO_timeout_ = initial_RTO_ms_;
             timer_ = 0;
         }
 
         segments_out_.push(msg);
 
         outstanding_seqno_ += msg.sequence_length();
-        outstanding_segments_.insert(std::make_pair(next_absolute_seqno_, msg));
-        next_absolute_seqno_ += msg.sequence_length();
+        outstanding_seg_.insert(std::make_pair(next_abs_seqno_, msg));
+        next_abs_seqno_ += msg.sequence_length();
 
         if (msg.FIN) {
             break;
@@ -85,52 +73,50 @@ void TCPSender::push(Reader &outbound_stream) {
 }
 
 TCPSenderMessage TCPSender::send_empty_message() const {
-    // Your code here.
-    TCPSenderMessage msg;
-    msg.seqno = isn_ + next_absolute_seqno_;
-    return msg;
+    TCPSenderMessage segment;
+    segment.seqno = get_next_seqno();
+
+    return segment;
 }
 
 void TCPSender::receive(const TCPReceiverMessage &msg) {
-    // Your code here.
-    if (!msg.ackno.has_value()) { // Don't return directly
+    if (!msg.ackno.has_value()) { ; // Don't return directly
     } else {
-        const uint64_t recv_abs_seqno = msg.ackno.value().unwrap(isn_, next_absolute_seqno_);
-        if (recv_abs_seqno > next_absolute_seqno_) {
+        const uint64_t recv_abs_seqno = msg.ackno.value().unwrap(isn_, next_abs_seqno_);
+        if (recv_abs_seqno > next_abs_seqno_) {
             // Impossible, we couldn't transmit future data
             return;
         }
 
-        for (auto iter = outstanding_segments_.begin(); iter != outstanding_segments_.end();) {
+        for (auto iter = outstanding_seg_.begin(); iter != outstanding_seg_.end();) {
             const auto &[abs_seqno, segment] = *iter;
             if (abs_seqno + segment.sequence_length() <= recv_abs_seqno) {
                 outstanding_seqno_ -= segment.sequence_length();
-                iter = outstanding_segments_.erase(iter);
+                iter = outstanding_seg_.erase(iter);
                 // reset RTO and if outstanding data is not empty, start timer
-                rto_ = initial_RTO_ms_;
-                if (!outstanding_segments_.empty()) {
+                RTO_timeout_ = initial_RTO_ms_;
+                if (!outstanding_seg_.empty()) {
                     timer_ = 0;
                 }
             } else {
                 break;
             }
         }
-        number_of_retransmissions_ = 0;
+        consecutive_retransmission_times_ = 0;
     }
     window_size_ = msg.window_size;
 }
 
 void TCPSender::tick(const size_t ms_since_last_tick) {
-    // Your code here.
     timer_ += ms_since_last_tick;
-    auto iter = outstanding_segments_.begin();
-    if (timer_ >= rto_ && iter != outstanding_segments_.end()) {
+    auto iter = outstanding_seg_.begin();
+    if (timer_ >= RTO_timeout_ && iter != outstanding_seg_.end()) {
         const auto &[abs_seqno, segment] = *iter;
         if (window_size_ > 0) {
-            rto_ *= 2;
+            RTO_timeout_ *= 2;
         }
-        number_of_retransmissions_++;
         timer_ = 0;
+        consecutive_retransmission_times_++;
         segments_out_.push(segment);
     }
 }
