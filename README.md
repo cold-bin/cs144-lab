@@ -55,6 +55,8 @@ part2实现可靠字节流，使用一个普通string来存储字节流
 
 ## reference link
 
+- [lab2实验手册](https://cs144.github.io/assignments/check2.pdf)
+
 ## implementation
 
 ### `wrap`与`unwrap`
@@ -77,3 +79,16 @@ part2实现可靠字节流，使用一个普通string来存储字节流
 
 - `receive`时，直接在`reassembler`中插入`absolute seqno`，显然不是期待的`stream_index`；
 - `send`时，需要考虑到`available_capacity`不能超过`UINT_MAX`以及`close`时，发送的fin报文也要占据一个序号
+
+# lab3
+
+## reference link
+
+- [lab3实验手册](https://cs144.github.io/assignments/check3.pdf)
+- [博客](https://hangx-ma.github.io/2023/05/24/cs144-lab3.html)
+
+## implementation
+
+> 这里参考了博客实现
+
+- 实现ARQ重传机制
