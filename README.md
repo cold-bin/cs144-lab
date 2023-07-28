@@ -92,3 +92,33 @@ part2实现可靠字节流，使用一个普通string来存储字节流
 > 这里参考了博客实现
 
 - 实现ARQ重传机制
+
+# lab4
+
+## reference link
+
+- [lab4实验手册](https://cs144.github.io/assignments/check4.pdf)
+- [博客](https://hangx-ma.github.io/2023/05/27/cs144-lab4.html)
+
+## implementation
+
+Lab4 要求实现网络接口部分， 打通网络数据报 （Internet datagrams） 和链路层的以太网帧（link-layer Ethernet frames）
+之间的桥梁。<br/>
+也就是，实现ip数据报转化为mac帧。ip数据报在转化为mac帧时，最重要的就是要知道目的mac地址，而mac地址我们可以通过arp协议来学习到。
+所以，这里就牵扯到了arp协议的实现：
+  - 目的ip地址与mac地址的缓存映射。最多保存30s；
+  - 端系统可以组装ip报文和arp请求与响应报文，也能解析之；
+  - 不论是arp请求还是arp响应，端系统拿到过后都可以学习到对等端的ip的其mac地址的映射关系
+  - 而且，我们并不能任性发送arp请求，我们只能等待相同的arp请求发出去5秒后没有收到arp响应才再次发送，这是为了防止频繁地arp广播导致链路阻塞
+  - 端系统在接收报文时，收到ip数据报自然不用说，该怎么处理就怎么处理，但是收到arp报文时，需要进一步处理：
+    - 如果是arp请求报文
+      那么我们在校验合法性通过后，还需要学习arp请求的来源ip地址和来源mac地址的映射关系，并且构造arp响应，返回自己的ip与mac地址的映射关系，以供arp请求方学习
+    - 如果是arp响应报文
+      那么我们在校验合法性通过后，再从arp响应报文中学习到目的ip地址和目的mac地址的映射关系。除了mac地址学习外，我们还需要将arp请求等待列表清空
+    总之，我们通过arp协议拿到了目的mac地址过后，剩下的事情就非常简单了（将ip数据报组装成mac帧，以方便发送到数据链路上
+
+> 实验手册给的实现已经很详细了，翻译成代码即可。
+
+![img.png](static/img-lab4-network-interface.png)
+
+# lab5
