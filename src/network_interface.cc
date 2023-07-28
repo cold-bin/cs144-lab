@@ -128,11 +128,11 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
     /* delete expired ARP items in ARP Table */
     // FIXME: Don't use 'iter++' if we have erase current iter's data!
     for (auto iter = arp_table_.begin(); iter != arp_table_.end(); /* nop */) {
-        auto &[ipv4_addr_numeric, arp] = *iter;
-        if (arp.ttl <= ms_since_last_tick) {
+        auto &[ipv4_addr_numeric, arp_] = *iter;
+        if (arp_.ttl <= ms_since_last_tick) {
             iter = arp_table_.erase(iter);
         } else {
-            arp.ttl -= ms_since_last_tick;
+            arp_.ttl -= ms_since_last_tick;
             iter++;
         }
     }
