@@ -36,6 +36,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // 发送arp request
     auto iter2 = arp_requests_lifetime_.find(next_hop_ipv4_num);
     if (iter2 != arp_requests_lifetime_.end() && iter2->second > 0) {/* arp请求已经发送，但是还没有到5seconds，等待接收arp响应 */
+        arp_requests_waiting_list_.push_back(std::pair<Address, InternetDatagram>(next_hop, dgram));
         return;
     }
 
@@ -55,7 +56,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     outbound_frames_.push(ef);
 
     // 缓存arp 请求时间
-    arp_requests_waiting_list_.push_back(std::pair<Address, InternetDatagram>(next_hop, dgram));
+    arp_requests_waiting_list_.emplace_back(next_hop, dgram);
     arp_requests_lifetime_.emplace(std::pair<uint32_t, size_t>(next_hop_ipv4_num, ARP_REQUEST_DEFAULT_TTL));
 }
 
@@ -80,10 +81,9 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
         ARPMessage arp_msg;
         auto ok = parse(arp_msg, frame.payload);
         if (ok) {
-
             const bool is_arp_request =
                     arp_msg.opcode == ARPMessage::OPCODE_REQUEST &&
-                    arp_msg.target_ip_address == ip_address_.ipv4_numeric();
+                    arp_msg.target_ip_address == NetworkInterface::ip_address_.ipv4_numeric();
 
             if (is_arp_request) {
                 ARPMessage arp_reply_msg;
@@ -140,11 +140,9 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
     }
 
     // resend the arp request when it is time to resend. (over 5 seconds)
-    for (auto iter = arp_requests_waiting_list_.begin(); iter != arp_requests_waiting_list_.end(); iter++) {
-        auto key = iter->first.ipv4_numeric();
-        if (arp_requests_lifetime_[key] <= ms_since_last_tick) {
-
-            arp_requests_lifetime_[key] = ARP_REQUEST_DEFAULT_TTL;
+    for (auto &[ipv4_addr, arp_ttl]: arp_requests_lifetime_) {
+        if (arp_ttl <= ms_since_last_tick) {
+            arp_ttl = ARP_REQUEST_DEFAULT_TTL;
             // resend mac frame
             EthernetFrame ef;
             ef.header.dst = ETHERNET_BROADCAST;
@@ -155,14 +153,14 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
             arp_msg.opcode = ARPMessage::OPCODE_REQUEST;
             arp_msg.sender_ip_address = NetworkInterface::ip_address_.ipv4_numeric();
             arp_msg.sender_ethernet_address = NetworkInterface::ethernet_address_;
-            arp_msg.target_ip_address = key;
+            arp_msg.target_ip_address = ipv4_addr;
             arp_msg.target_ethernet_address = {0, 0, 0, 0, 0, 0};
 
             ef.payload = serialize(arp_msg);;
             outbound_frames_.push(ef);
             continue;
         }
-        arp_requests_lifetime_[key] -= ms_since_last_tick;
+        arp_ttl -= ms_since_last_tick;
     }
 }
 
