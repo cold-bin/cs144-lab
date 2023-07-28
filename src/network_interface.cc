@@ -166,7 +166,7 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
 
 optional<EthernetFrame> NetworkInterface::maybe_send() {
     if (!outbound_frames_.empty()) {
-        auto res = outbound_frames_.front();
+        auto res = std::move(outbound_frames_.front());
         outbound_frames_.pop();
         return res;
     }
