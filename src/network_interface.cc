@@ -2,7 +2,6 @@
 
 #include "arp_message.hh"
 #include "ethernet_frame.hh"
-#include "../util/socket.hh"
 
 using namespace std;
 
@@ -131,11 +130,11 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
 void NetworkInterface::tick(const size_t ms_since_last_tick) {
     // clear arp cache when arp cache is out of date
     for (auto iter = arp_table_.begin(); iter != arp_table_.end();) {
-        auto &[ipv4_addr_numeric, arp] = *iter;
-        if (arp.ttl <= ms_since_last_tick) {
+        auto &[ipv4_addr_numeric, arp_] = *iter;
+        if (arp_.ttl <= ms_since_last_tick) {
             iter = arp_table_.erase(iter);
         } else {
-            arp.ttl -= ms_since_last_tick;
+            arp_.ttl -= ms_since_last_tick;
             iter++;
         }
     }
