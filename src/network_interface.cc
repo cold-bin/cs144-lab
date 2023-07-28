@@ -106,17 +106,19 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
         if (is_arp_request || is_arp_response) {
             arp_table_.emplace(std::make_pair(arp_msg.sender_ip_address,
                                               arp_t{arp_msg.sender_ethernet_address, ARP_DEFAULT_TTL}));
-            // delete arp datagrams waiting list
-            for (auto iter = arp_requests_waiting_list_.begin(); iter != arp_requests_waiting_list_.end();) {
-                const auto &[ipv4_addr, datagram] = *iter;
-                if (ipv4_addr.ipv4_numeric() == arp_msg.sender_ip_address) {
-                    send_datagram(datagram, ipv4_addr);
-                    iter = arp_requests_waiting_list_.erase(iter);
-                } else {
-                    iter++;
+            if (is_arp_response) {
+                // delete arp datagrams waiting list
+                for (auto iter = arp_requests_waiting_list_.begin(); iter != arp_requests_waiting_list_.end();) {
+                    const auto &[ipv4_addr, datagram] = *iter;
+                    if (ipv4_addr.ipv4_numeric() == arp_msg.sender_ip_address) {
+                        send_datagram(datagram, ipv4_addr);
+                        iter = arp_requests_waiting_list_.erase(iter);
+                    } else {
+                        iter++;
+                    }
                 }
+                arp_requests_lifetime_.erase(arp_msg.sender_ip_address);
             }
-            arp_requests_lifetime_.erase(arp_msg.sender_ip_address);
         }
     }
 
