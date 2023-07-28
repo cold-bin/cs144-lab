@@ -36,7 +36,7 @@ void NetworkInterface::send_datagram(const InternetDatagram &dgram, const Addres
     // 发送arp request
     auto iter2 = arp_requests_lifetime_.find(next_hop_ipv4_num);
     if (iter2 != arp_requests_lifetime_.end() && iter2->second > 0) {/* arp请求已经发送，但是还没有到5seconds，等待接收arp响应 */
-        arp_requests_waiting_list_.push_back(std::pair<Address, InternetDatagram>(next_hop, dgram));
+        arp_requests_waiting_list_.emplace_back(next_hop, dgram);
         return;
     }
 
@@ -131,10 +131,11 @@ optional<InternetDatagram> NetworkInterface::recv_frame(const EthernetFrame &fra
 void NetworkInterface::tick(const size_t ms_since_last_tick) {
     // clear arp cache when arp cache is out of date
     for (auto iter = arp_table_.begin(); iter != arp_table_.end();) {
-        if (iter->second.ttl <= ms_since_last_tick) {
+        auto &[ipv4_addr_numeric, arp] = *iter;
+        if (arp.ttl <= ms_since_last_tick) {
             iter = arp_table_.erase(iter);
         } else {
-            iter->second.ttl -= ms_since_last_tick;
+            arp.ttl -= ms_since_last_tick;
             iter++;
         }
     }
@@ -142,7 +143,6 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
     // resend the arp request when it is time to resend. (over 5 seconds)
     for (auto &[ipv4_addr, arp_ttl]: arp_requests_lifetime_) {
         if (arp_ttl <= ms_since_last_tick) {
-            arp_ttl = ARP_REQUEST_DEFAULT_TTL;
             // resend mac frame
             EthernetFrame ef;
             ef.header.dst = ETHERNET_BROADCAST;
@@ -158,6 +158,7 @@ void NetworkInterface::tick(const size_t ms_since_last_tick) {
 
             ef.payload = serialize(arp_msg);;
             outbound_frames_.push(ef);
+            arp_ttl = ARP_REQUEST_DEFAULT_TTL;
             continue;
         }
         arp_ttl -= ms_since_last_tick;
