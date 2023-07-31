@@ -20,8 +20,7 @@ void Router::add_route(const uint32_t route_prefix, /* 目标ip */
          << static_cast<int>( prefix_length ) << " => " << (next_hop.has_value() ? next_hop->ip() : "(direct)")
          << " on interface " << interface_num << "\n";
     // route rule不存在，新增
-    route_t r = {route_prefix, prefix_length, next_hop, interface_num};
-    routing_table_.emplace_back(r);
+    routing_table_.emplace_back(route_t{route_prefix, prefix_length, next_hop, interface_num});
 }
 
 void Router::route() {
@@ -35,7 +34,7 @@ void Router::route() {
 
                 // 找到next hop & interface id
                 uint8_t max_prefix_length = -1;
-                route_t ans_r;
+                route_t ans_r{};
                 for (route_t const &r: routing_table_) {
                     uint8_t const offset = static_cast<uint8_t>(32) - r.prefix_length;
                     if ((r.route_prefix >> offset) == (ip_datagram.header.dst >> offset)) {/*前缀匹配*/
@@ -46,10 +45,12 @@ void Router::route() {
                     }
                 }
 
-                // 发送
-                ip_datagram.header.compute_checksum();/*重新计算校验和*/
-                AsyncNetworkInterface &out_interface = interface(ans_r.interface_id);
-                out_interface.send_datagram(ip_datagram, ans_r.next_hop.has_value() ? ans_r.next_hop.value(): Address::from_ipv4_numeric(ip_datagram.header.dst));
+                if (max_prefix_length >=0){
+                    // 发送
+                    ip_datagram.header.compute_checksum();/*重新计算校验和*/
+                    AsyncNetworkInterface &out_interface = interface(ans_r.interface_id);
+                    out_interface.send_datagram(ip_datagram, ans_r.next_hop.has_value() ? ans_r.next_hop.value(): Address::from_ipv4_numeric(ip_datagram.header.dst));
+                }
             }
         }
     }
