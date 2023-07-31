@@ -36,6 +36,11 @@ void Router::route() {
                 int8_t max_prefix_length = -1;
                 route_t ans_r{};
                 for (route_t const &r: routing_table_) {
+                    if (r.prefix_length==0){/*32位无符号数无法移位32位，另外处理*/
+                        max_prefix_length = static_cast<int8_t>(r.prefix_length);
+                        ans_r = r;
+                        continue;
+                    }
                     uint32_t mask = ~0U;
                     mask <<= static_cast<uint32_t>(32-r.prefix_length);
 
