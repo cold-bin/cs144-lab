@@ -36,8 +36,8 @@ void Router::route() {
                 int8_t max_prefix_length = -1;
                 route_t ans_r{};
                 for (route_t const &r: routing_table_) {
-                    uint32_t mask = ~0;
-                    mask <<= (32-static_cast<uint32_t>(r.prefix_length));
+                    uint32_t mask = ~0U;
+                    mask <<= static_cast<uint32_t>(32-r.prefix_length);
 
                     if ((r.route_prefix & mask) == (ip_datagram.header.dst & mask)) {/*前缀匹配*/
                         if (max_prefix_length < r.prefix_length) {/*取最长前缀*/
