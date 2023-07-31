@@ -36,7 +36,7 @@ void Router::route() {
                 // 找到next hop & interface id
                 uint8_t max_prefix_length = -1;
                 route_t ans_r;
-                for (route_t const r: routing_table_) {
+                for (route_t const &r: routing_table_) {
                     uint8_t const offset = static_cast<uint8_t>(32) - r.prefix_length;
                     if ((r.route_prefix >> offset) == (ip_datagram.header.dst >> offset)) {/*前缀匹配*/
                         if (max_prefix_length < r.prefix_length) {/*取最长前缀*/

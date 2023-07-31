@@ -5,6 +5,13 @@
 #include <optional>
 #include <queue>
 
+typedef struct {
+    uint32_t route_prefix{};
+    uint8_t prefix_length{};
+    std::optional<Address> next_hop;
+    size_t interface_id{};
+} route_t;
+
 // A wrapper for NetworkInterface that makes the host-side
 // interface asynchronous: instead of returning received datagrams
 // immediately (from the `recv_frame` method), it stores them for
@@ -52,12 +59,7 @@ class Router {
     std::vector<AsyncNetworkInterface> interfaces_{};
 
     // Routing table data structure
-    using route_t = struct {
-        uint32_t route_prefix{};
-        uint8_t prefix_length{};
-        std::optional<Address> next_hop;
-        size_t interface_id{};
-    };
+
     std::list<route_t> routing_table_{};
 
 public:
