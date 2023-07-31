@@ -30,7 +30,7 @@ void Router::route() {
         while (auto dgram = ani.maybe_receive()) {
             if (dgram) {
                 auto ip_datagram = dgram.value();
-                if (ip_datagram.header.ttl-- <= 0) continue;/*不转发ttl过期的ip数据报*/
+                if (ip_datagram.header.ttl-- <= 1) continue;/*不转发ttl过期的ip数据报*/
 
                 // 找到next hop & interface id
                 int8_t max_prefix_length = -1;
