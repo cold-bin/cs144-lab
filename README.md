@@ -123,3 +123,26 @@ Lab4 要求实现网络接口部分， 打通网络数据报 （Internet datagra
 ![img.png](static/img-lab4-network-interface.png)
 
 # lab5
+
+## reference link
+
+- [lab5实验手册](https://cs144.github.io/assignments/check5.pdf)
+- [博客](https://hangx-ma.github.io/2023/05/30/cs144-lab5.html)
+
+## implementation
+
+lab5的要求是在lab4实现的网络接口上，实现`ip router`.路由器有多个网络接口，可以在其中任何一个接口上接收 Internet 数据报。
+路由器的工作是根据路由表转发它获得的数据报：路由表是一个规则列表，告诉路由器对于任何给定的数据报:
+
+- 在哪个`network interface`发出去
+- 确定`next hop`
+
+> 实验手册的`Q & A`中对`route table`的数据结构要求很低，允许实现O(N)时间复杂度。所以，这里直接使用`std:list<type>`。
+
+lab5的要求其实很简单了。我们只需要实现路由最长前缀匹配即可，并不需要实现动态路由的一些协议（RIP、OSPF、BGP 或 SDN 控制器）
+当然除了这些，我们还需要注意：
+
+- 每次路由转发ip数据报时，ttl需要减一，直至ttl等于0时，路由器会自动丢弃它
+- 如果路由表里没有找到`next hop`，也会丢弃ip数据报
+- 如果路由的数据报缓存已满，也会丢弃掉（lab5里并没有说
+
