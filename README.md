@@ -153,4 +153,4 @@ lab5的要求其实很简单了。我们只需要实现路由最长前缀匹配�
 使用以前的所有实现的lab来创建一个真实的网络，其中包括网络堆栈（主机和路由器），与另一台主机上实现的网络堆栈进行通信。
 
 ## how to do
-- [lab5实验手册](https://cs144.github.io/assignments/check6.pdf)
+- [lab6实验手册](https://cs144.github.io/assignments/check6.pdf)
